@@ -1,3 +1,4 @@
+价格显示借鉴了mod模板的写法
 mod模板参考：https://github.com/xvrsl/duckov_modding
 
 # 调试工具
