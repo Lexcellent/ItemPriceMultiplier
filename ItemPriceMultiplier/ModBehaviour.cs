@@ -15,8 +15,23 @@ namespace ItemPriceMultiplier
     {
         private bool _isInit = false;
         private Harmony? _harmony = null;
-        private static int _itemPriceMultiplier = 2;
-        private static bool _showPrice = true;
+        public static int ItemPriceMultiplierValue { get; private set; } = 2;
+        public static bool ShowPrice { get; private set; } = true;
+
+        TextMeshProUGUI? _text = null;
+
+        TextMeshProUGUI Text
+        {
+            get
+            {
+                if (_text == null)
+                {
+                    _text = Instantiate(GameplayDataSettings.UIStyle.TemplateTextUGUI);
+                }
+
+                return _text;
+            }
+        }
 
         protected override void OnAfterSetup()
         {
@@ -64,7 +79,7 @@ namespace ItemPriceMultiplier
                             string value = line.Substring("ItemPriceMultiplier=".Length).Trim();
                             if (int.TryParse(value, out int multiplier))
                             {
-                                _itemPriceMultiplier = multiplier;
+                                ItemPriceMultiplierValue = multiplier;
                                 Debug.Log($"ItemPriceMultiplier模组：已从配置文件读取ItemPriceMultiplier值: {multiplier}");
                             }
                         }
@@ -73,7 +88,7 @@ namespace ItemPriceMultiplier
                             string value = line.Substring("ShowPrice=".Length).Trim();
                             if (bool.TryParse(value, out bool showPrice))
                             {
-                                _showPrice = showPrice;
+                                ShowPrice = showPrice;
                                 Debug.Log($"ItemPriceMultiplier模组：已从配置文件读取ShowPrice值: {showPrice}");
                             }
                         }
@@ -87,38 +102,6 @@ namespace ItemPriceMultiplier
             catch (Exception e)
             {
                 Debug.Log($"ItemPriceMultiplier模组：读取配置文件时出错：{e.Message}，使用默认值");
-            }
-        }
-
-        [HarmonyPostfix, HarmonyPatch(typeof(StockShop), "ConvertPrice")]
-        public static void ItemPriceMultiplierPatch(ref int __result, bool selling)
-        {
-            try
-            {
-                Debug.Log($"ItemPriceMultiplier模组：模式：{selling}，价格：{__result}");
-                if (selling)
-                {
-                    __result *= _itemPriceMultiplier;
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.Log($"ItemPriceMultiplier模组：错误：{e.Message}");
-            }
-        }
-
-        TextMeshProUGUI? _text = null;
-
-        TextMeshProUGUI Text
-        {
-            get
-            {
-                if (_text == null)
-                {
-                    _text = Instantiate(GameplayDataSettings.UIStyle.TemplateTextUGUI);
-                }
-
-                return _text;
             }
         }
 
@@ -145,7 +128,7 @@ namespace ItemPriceMultiplier
 
         private void OnSetupItemHoveringUI(ItemHoveringUI uiInstance, Item item)
         {
-            if (!_showPrice || item == null)
+            if (!ShowPrice || item == null)
             {
                 Text.gameObject.SetActive(false);
                 return;
@@ -156,9 +139,31 @@ namespace ItemPriceMultiplier
             Text.transform.localScale = Vector3.one;
             float num = 0.5f;
             var convertPrice = Mathf.FloorToInt((float)item.GetTotalRawValue() * num);
-            Text.text = $"${convertPrice * _itemPriceMultiplier}";
+            Text.text = $"${convertPrice * ItemPriceMultiplierValue}";
             Text.fontSize = 20f;
             Text.color = Color.green;
+        }
+    }
+
+    // 单独的补丁类
+    [HarmonyPatch(typeof(StockShop), "ConvertPrice")]
+    public static class StockShopPatch
+    {
+        [HarmonyPostfix]
+        public static void Postfix(ref int __result, bool selling)
+        {
+            try
+            {
+                Debug.Log($"ItemPriceMultiplier模组：模式：{selling}，价格：{__result}");
+                if (selling)
+                {
+                    __result *= ModBehaviour.ItemPriceMultiplierValue;
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.Log($"ItemPriceMultiplier模组：错误：{e.Message}");
+            }
         }
     }
 }
