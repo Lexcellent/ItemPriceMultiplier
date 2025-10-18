@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using UnityEngine;
 using HarmonyLib;
 using System.IO;
@@ -13,7 +14,7 @@ namespace ItemPriceMultiplier
     public class ModBehaviour : Duckov.Modding.ModBehaviour
     {
         private bool _isInit = false;
-        private string? _harmonyId = null;
+        private Harmony? _harmony = null;
         private static int _itemPriceMultiplier = 2;
         private static bool _showPrice = true;
 
@@ -24,7 +25,8 @@ namespace ItemPriceMultiplier
             {
                 LoadConfig();
                 Debug.Log("ItemPriceMultiplier模组：执行修补");
-                _harmonyId = Harmony.CreateAndPatchAll(typeof(ItemPriceMultiplier.ModBehaviour)).Id;
+                _harmony = new Harmony("Lexcellent.ItemPriceMultiplier");
+                _harmony.PatchAll(Assembly.GetExecutingAssembly());
                 _isInit = true;
                 Debug.Log("ItemPriceMultiplier模组：修补完成");
             }
@@ -36,9 +38,9 @@ namespace ItemPriceMultiplier
             if (_isInit)
             {
                 Debug.Log("ItemPriceMultiplier模组：执行取消修补");
-                if (_harmonyId != null)
+                if (_harmony != null)
                 {
-                    Harmony.UnpatchID(_harmonyId);
+                    _harmony.UnpatchAll();
                 }
 
                 Debug.Log("ItemPriceMultiplier模组：执行取消修补完毕");
@@ -50,7 +52,7 @@ namespace ItemPriceMultiplier
             try
             {
                 string configPath =
-                    Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location),
+                    Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
                         "info.ini");
                 if (File.Exists(configPath))
                 {
