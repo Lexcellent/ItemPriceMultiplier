@@ -15,7 +15,7 @@ namespace ItemPriceMultiplier
     {
         private bool _isInit = false;
         private Harmony? _harmony = null;
-        public static int ItemPriceMultiplierValue { get; private set; } = 2;
+        public static float ItemPriceMultiplierValue { get; private set; } = 2.0f;
         public static bool ShowPrice { get; private set; } = true;
 
         TextMeshProUGUI? _text = null;
@@ -35,30 +35,30 @@ namespace ItemPriceMultiplier
 
         protected override void OnAfterSetup()
         {
-            Debug.Log("ItemPriceMultiplier模组：OnAfterSetup方法被调用");
+            // Debug.Log("ItemPriceMultiplier模组：OnAfterSetup方法被调用");
             if (!_isInit)
             {
                 LoadConfig();
-                Debug.Log("ItemPriceMultiplier模组：执行修补");
+                // Debug.Log("ItemPriceMultiplier模组：执行修补");
                 _harmony = new Harmony("Lexcellent.ItemPriceMultiplier");
                 _harmony.PatchAll(Assembly.GetExecutingAssembly());
                 _isInit = true;
-                Debug.Log("ItemPriceMultiplier模组：修补完成");
+                // Debug.Log("ItemPriceMultiplier模组：修补完成");
             }
         }
 
         protected override void OnBeforeDeactivate()
         {
-            Debug.Log("ItemPriceMultiplier模组：OnBeforeDeactivate方法被调用");
+            // Debug.Log("ItemPriceMultiplier模组：OnBeforeDeactivate方法被调用");
             if (_isInit)
             {
-                Debug.Log("ItemPriceMultiplier模组：执行取消修补");
+                // Debug.Log("ItemPriceMultiplier模组：执行取消修补");
                 if (_harmony != null)
                 {
                     _harmony.UnpatchAll();
                 }
 
-                Debug.Log("ItemPriceMultiplier模组：执行取消修补完毕");
+                // Debug.Log("ItemPriceMultiplier模组：执行取消修补完毕");
             }
         }
 
@@ -74,18 +74,19 @@ namespace ItemPriceMultiplier
                     string[] lines = File.ReadAllLines(configPath);
                     foreach (string line in lines)
                     {
-                        if (line.StartsWith("ItemPriceMultiplier="))
+                        // Debug.Log($"ItemPriceMultiplier模组：line  {line}");
+                        if (line.Trim().StartsWith("ItemPriceMultiplier="))
                         {
-                            string value = line.Substring("ItemPriceMultiplier=".Length).Trim();
-                            if (int.TryParse(value, out int multiplier))
+                            string value = line.Trim().Substring("ItemPriceMultiplier=".Length).Trim();
+                            if (float.TryParse(value, out float multiplier))
                             {
                                 ItemPriceMultiplierValue = multiplier;
                                 Debug.Log($"ItemPriceMultiplier模组：已从配置文件读取ItemPriceMultiplier值: {multiplier}");
                             }
                         }
-                        else if (line.StartsWith("ShowPrice="))
+                        else if (line.Trim().StartsWith("ShowPrice="))
                         {
-                            string value = line.Substring("ShowPrice=".Length).Trim();
+                            string value = line.Trim().Substring("ShowPrice=".Length).Trim();
                             if (bool.TryParse(value, out bool showPrice))
                             {
                                 ShowPrice = showPrice;
@@ -103,11 +104,6 @@ namespace ItemPriceMultiplier
             {
                 Debug.Log($"ItemPriceMultiplier模组：读取配置文件时出错：{e.Message}，使用默认值");
             }
-        }
-
-        void Awake()
-        {
-            Debug.Log("DisplayItemValue Loaded!!!");
         }
 
         void OnDestroy()
@@ -139,7 +135,7 @@ namespace ItemPriceMultiplier
             Text.transform.localScale = Vector3.one;
             float num = 0.5f;
             var convertPrice = Mathf.FloorToInt((float)item.GetTotalRawValue() * num);
-            Text.text = $"${convertPrice * ItemPriceMultiplierValue}";
+            Text.text = $"${Mathf.FloorToInt(convertPrice * ModBehaviour.ItemPriceMultiplierValue)}";
             Text.fontSize = 20f;
             Text.color = Color.green;
         }
@@ -150,14 +146,15 @@ namespace ItemPriceMultiplier
     public static class StockShopPatch
     {
         [HarmonyPostfix]
-        public static void Postfix(ref int __result, bool selling)
+        public static void Postfix(ref int __result, Item item, bool selling)
         {
             try
             {
-                Debug.Log($"ItemPriceMultiplier模组：模式：{selling}，价格：{__result}");
+                // Debug.Log(
+                //     $"ItemPriceMultiplier模组：模式：{selling}，itemId:{item.TypeID},itemName:{item.DisplayName},价格：{__result}");
                 if (selling)
                 {
-                    __result *= ModBehaviour.ItemPriceMultiplierValue;
+                    __result = Mathf.FloorToInt(__result * ModBehaviour.ItemPriceMultiplierValue);
                 }
             }
             catch (Exception e)
